@@ -7,284 +7,285 @@ on:
     branches: [develop]
 
 jobs:
-  pre-commit:
-    name: pre-commit
-    runs-on: ubuntu-latest
-    env:
-      # > --------------------------------------------------
-      # > sccache
-      # https://github.com/Mozilla-Actions/sccache-action
-      SCCACHE_IDLE_TIMEOUT: 0
-      SCCACHE_DIRECT: "true"
-      SCCACHE_CACHE_MULTIARCH: 1
-      SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
-      RUSTC_WRAPPER: "sccache"
-      CC: "sccache clang"
-      CXX: "sccache clang++"
-      # Incrementally compiled crates cannot be cached by sccache
-      # https://github.com/mozilla/sccache#rust
-      CARGO_INCREMENTAL: 0
-      # > --------------------------------------------------
+  # pre-commit:
+  #   name: pre-commit
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     # > --------------------------------------------------
+  #     # > sccache
+  #     # https://github.com/Mozilla-Actions/sccache-action
+  #     SCCACHE_IDLE_TIMEOUT: 0
+  #     SCCACHE_DIRECT: "true"
+  #     SCCACHE_CACHE_MULTIARCH: 1
+  #     SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
+  #     RUSTC_WRAPPER: "sccache"
+  #     CC: "sccache clang"
+  #     CXX: "sccache clang++"
+  #     # Incrementally compiled crates cannot be cached by sccache
+  #     # https://github.com/mozilla/sccache#rust
+  #     CARGO_INCREMENTAL: 0
+  #     # > --------------------------------------------------
+  #
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Rust toolchain
+  #       run: |
+  #         rustup toolchain add --profile minimal stable --component clippy,rustfmt
+  #
+  #     - name: Set up Python environment
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.11"
+  #
+  #     - name: Get Python version
+  #       run: |
+  #         version=$(bash scripts/python-version.sh)
+  #         echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Get Poetry version from poetry-version
+  #       run: |
+  #         version=$(cat poetry-version)
+  #         echo "POETRY_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Install Poetry
+  #       uses: snok/install-poetry@v1
+  #       with:
+  #         version: ${{ env.POETRY_VERSION }}
+  #
+  #     - name: Install build and dev dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip setuptools wheel
+  #         poetry install --only dev --no-root
+  #
+  #     - name: Cached sccache
+  #       id: cached-sccache
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ env.SCCACHE_DIR }}
+  #         key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
+  #         restore-keys: |
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-
+  #           sccache-${{ runner.os }}-
+  #
+  #     - name: Run sccache
+  #       uses: mozilla-actions/sccache-action@v0.0.7
+  #
+  #     - name: Cached pre-commit
+  #       id: cached-pre-commit
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.cache/pre-commit
+  #         key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+  #
+  #     - name: Run pre-commit
+  #       continue-on-error: true
+  #       run: make pre-commit || echo "PRECOMMIT_FAILED=true" > $GITHUB_ENV
+  #
+  #     # https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
+  #     - name: Add PR comment on failure
+  #       if: env.PRECOMMIT_FAILED == 'true' && github.event_name == 'pull_request'
+  #       uses: actions/github-script@v7
+  #       with:
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #         script: |
+  #           github.rest.issues.createComment({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             issue_number: context.issue.number,
+  #             body: 'Thank you for your contribution! 🙏\n\nThe pre-commit checks failed, but this is easy to fix. You\'ll need to run:\n\n```bash\nmake pre-commit\n# or\npre-commit run --all-files\n```\n\nThis will automatically fix most formatting issues. Just commit any changes and push again.\n\nSee our [CONTRIBUTING.md](https://github.com/nautechsystems/nautilus_trader/blob/develop/CONTRIBUTING.md) guide for more details.'
+  #           })
+  #
+  #     - name: Fail job if pre-commit failed
+  #       if: env.PRECOMMIT_FAILED == 'true'
+  #       run: |
+  #         echo "Pre-commit checks failed, exiting"
+  #         exit 1
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Rust toolchain
-        run: |
-          rustup toolchain add --profile minimal stable --component clippy,rustfmt
-
-      - name: Set up Python environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Get Python version
-        run: |
-          version=$(bash scripts/python-version.sh)
-          echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Get Poetry version from poetry-version
-        run: |
-          version=$(cat poetry-version)
-          echo "POETRY_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: ${{ env.POETRY_VERSION }}
-
-      - name: Install build and dev dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          poetry install --only dev --no-root
-
-      - name: Cached sccache
-        id: cached-sccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
-          restore-keys: |
-            sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
-            sccache-${{ runner.os }}-${{ github.workflow }}-
-            sccache-${{ runner.os }}-
-
-      - name: Run sccache
-        uses: mozilla-actions/sccache-action@v0.0.7
-
-      - name: Cached pre-commit
-        id: cached-pre-commit
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pre-commit
-          key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Run pre-commit
-        continue-on-error: true
-        run: make pre-commit || echo "PRECOMMIT_FAILED=true" > $GITHUB_ENV
-
-      # https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
-      - name: Add PR comment on failure
-        if: env.PRECOMMIT_FAILED == 'true' && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: 'Thank you for your contribution! 🙏\n\nThe pre-commit checks failed, but this is easy to fix. You\'ll need to run:\n\n```bash\nmake pre-commit\n# or\npre-commit run --all-files\n```\n\nThis will automatically fix most formatting issues. Just commit any changes and push again.\n\nSee our [CONTRIBUTING.md](https://github.com/nautechsystems/nautilus_trader/blob/develop/CONTRIBUTING.md) guide for more details.'
-            })
-
-      - name: Fail job if pre-commit failed
-        if: env.PRECOMMIT_FAILED == 'true'
-        run: |
-          echo "Pre-commit checks failed, exiting"
-          exit 1
-
-  build-linux-standard-precision:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.12"]
-    defaults:
-      run:
-        shell: bash
-    name: build standard-precision (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    needs: [pre-commit]
-    env:
-      BUILD_MODE: debug
-      HIGH_PRECISION: false
-      RUST_BACKTRACE: 1
-      # > --------------------------------------------------
-      # > sccache
-      # https://github.com/Mozilla-Actions/sccache-action
-      SCCACHE_IDLE_TIMEOUT: 0
-      SCCACHE_DIRECT: "true"
-      SCCACHE_CACHE_MULTIARCH: 1
-      SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
-      RUSTC_WRAPPER: "sccache"
-      CC: "sccache clang"
-      CXX: "sccache clang++"
-      # Incrementally compiled crates cannot be cached by sccache
-      # https://github.com/mozilla/sccache#rust
-      CARGO_INCREMENTAL: 0
-      # > --------------------------------------------------
-
-    services:
-      redis:
-        image: redis
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: pass
-          POSTGRES_DB: nautilus
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-    steps:
-      - name: Install runner dependencies
-        run: sudo apt-get install -y curl clang git libssl-dev make pkg-config
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Rust toolchain
-        run: |
-          rustup toolchain add --profile minimal stable --component clippy,rustfmt
-
-      - name: Set up Python environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Get Python version
-        run: |
-          version=$(bash scripts/python-version.sh)
-          echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Get Poetry version from poetry-version
-        run: |
-          version=$(cat poetry-version)
-          echo "POETRY_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: ${{ env.POETRY_VERSION }}
-
-      - name: Install build and dev dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          poetry install --only dev --no-root
-
-      - name: Cached sccache
-        id: cached-sccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
-          restore-keys: |
-            sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
-            sccache-${{ runner.os }}-${{ github.workflow }}-
-            sccache-${{ runner.os }}-
-
-      - name: Run sccache
-        uses: mozilla-actions/sccache-action@v0.0.7
-
-      - name: Cached cargo
-        id: cached-cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
-      - name: Cache Python site-packages
-        id: cached-site-packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/lib/python${{ matrix.python-version }}/site-packages
-          key: ${{ runner.os }}-${{ matrix.python-version }}-site-packages
-          restore-keys: |
-            ${{ runner.os }}-site-packages-
-
-      - name: Set poetry cache-dir
-        run: echo "POETRY_CACHE_DIR=$(poetry config cache-dir)" >> $GITHUB_ENV
-
-      - name: Cached poetry
-        id: cached-poetry
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.POETRY_CACHE_DIR }}
-          key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-poetry-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Cached test data
-        id: cached-testdata-large
-        uses: actions/cache@v4
-        with:
-          path: tests/test_data/large
-          key: ${{ runner.os }}-large-files-${{ hashFiles('tests/test_data/large/checksums.json') }}
-          restore-keys: ${{ runner.os }}-large-files-
-
-      - name: Install Nautilus CLI and run init postgres
-        run: |
-          make install-cli
-          nautilus database init --schema ${{ github.workspace }}/schema/sql
-        env:
-          POSTGRES_HOST: localhost
-          POSTGRES_PORT: 5432
-          POSTGRES_USERNAME: postgres
-          POSTGRES_PASSWORD: pass
-          POSTGRES_DATABASE: nautilus
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: nextest
-
-      - name: Run nautilus_core tests (with standard-precision)
-        run: make cargo-test-standard-precision
-
-      - name: Build Python wheel
-        run: |
-          poetry build --format wheel
-          ls -lh dist/
-
-      - name: Install Python wheel
-        run: |
-          python -m pip install --upgrade poetry-plugin-export
-          poetry export --with test --all-extras --format requirements.txt --output requirements-test.txt
-          python -m pip install -r requirements-test.txt
-          pip install "$(ls dist/*.whl)"
-
-      - name: Run tests
-        run: pytest --ignore=tests/performance_tests
+  # build-linux-standard-precision:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #       python-version: ["3.12"]
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   name: build standard-precision (${{ matrix.os }})
+  #   runs-on: ${{ matrix.os }}
+  #   needs: [pre-commit]
+  #   env:
+  #     BUILD_MODE: debug
+  #     HIGH_PRECISION: false
+  #     RUST_BACKTRACE: 1
+  #     # > --------------------------------------------------
+  #     # > sccache
+  #     # https://github.com/Mozilla-Actions/sccache-action
+  #     SCCACHE_IDLE_TIMEOUT: 0
+  #     SCCACHE_DIRECT: "true"
+  #     SCCACHE_CACHE_MULTIARCH: 1
+  #     SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
+  #     RUSTC_WRAPPER: "sccache"
+  #     CC: "sccache clang"
+  #     CXX: "sccache clang++"
+  #     # Incrementally compiled crates cannot be cached by sccache
+  #     # https://github.com/mozilla/sccache#rust
+  #     CARGO_INCREMENTAL: 0
+  #     # > --------------------------------------------------
+  #
+  #   services:
+  #     redis:
+  #       image: redis
+  #       ports:
+  #         - 6379:6379
+  #       options: >-
+  #         --health-cmd "redis-cli ping"
+  #         --health-interval 10s
+  #         --health-timeout 5s
+  #         --health-retries 5
+  #     postgres:
+  #       image: postgres
+  #       env:
+  #         POSTGRES_USER: postgres
+  #         POSTGRES_PASSWORD: pass
+  #         POSTGRES_DB: nautilus
+  #       ports:
+  #         - 5432:5432
+  #       options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+  #
+  #   steps:
+  #     - name: Install runner dependencies
+  #       run: sudo apt-get install -y curl clang git libssl-dev make pkg-config
+  #
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Rust toolchain
+  #       run: |
+  #         rustup toolchain add --profile minimal stable --component clippy,rustfmt
+  #
+  #     - name: Set up Python environment
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #
+  #     - name: Get Python version
+  #       run: |
+  #         version=$(bash scripts/python-version.sh)
+  #         echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Get Poetry version from poetry-version
+  #       run: |
+  #         version=$(cat poetry-version)
+  #         echo "POETRY_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Install Poetry
+  #       uses: snok/install-poetry@v1
+  #       with:
+  #         version: ${{ env.POETRY_VERSION }}
+  #
+  #     - name: Install build and dev dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip setuptools wheel
+  #         poetry install --only dev --no-root
+  #
+  #     - name: Cached sccache
+  #       id: cached-sccache
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ env.SCCACHE_DIR }}
+  #         key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
+  #         restore-keys: |
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-
+  #           sccache-${{ runner.os }}-
+  #
+  #     - name: Run sccache
+  #       uses: mozilla-actions/sccache-action@v0.0.7
+  #
+  #     - name: Cached cargo
+  #       id: cached-cargo
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target/
+  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: ${{ runner.os }}-cargo-
+  #
+  #     - name: Cache Python site-packages
+  #       id: cached-site-packages
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.local/lib/python${{ matrix.python-version }}/site-packages
+  #         key: ${{ runner.os }}-${{ matrix.python-version }}-site-packages
+  #         restore-keys: |
+  #           ${{ runner.os }}-site-packages-
+  #
+  #     - name: Set poetry cache-dir
+  #       run: echo "POETRY_CACHE_DIR=$(poetry config cache-dir)" >> $GITHUB_ENV
+  #
+  #     - name: Cached poetry
+  #       id: cached-poetry
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ env.POETRY_CACHE_DIR }}
+  #         key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-poetry-${{ hashFiles('**/poetry.lock') }}
+  #
+  #     - name: Cached test data
+  #       id: cached-testdata-large
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: tests/test_data/large
+  #         key: ${{ runner.os }}-large-files-${{ hashFiles('tests/test_data/large/checksums.json') }}
+  #         restore-keys: ${{ runner.os }}-large-files-
+  #
+  #     - name: Install Nautilus CLI and run init postgres
+  #       run: |
+  #         make install-cli
+  #         nautilus database init --schema ${{ github.workspace }}/schema/sql
+  #       env:
+  #         POSTGRES_HOST: localhost
+  #         POSTGRES_PORT: 5432
+  #         POSTGRES_USERNAME: postgres
+  #         POSTGRES_PASSWORD: pass
+  #         POSTGRES_DATABASE: nautilus
+  #
+  #     - name: Install cargo-nextest
+  #       uses: taiki-e/install-action@v2
+  #       with:
+  #         tool: nextest
+  #
+  #     - name: Run nautilus_core tests (with standard-precision)
+  #       run: make cargo-test-standard-precision
+  #
+  #     - name: Build Python wheel
+  #       run: |
+  #         poetry build --format wheel
+  #         ls -lh dist/
+  #
+  #     - name: Install Python wheel
+  #       run: |
+  #         python -m pip install --upgrade poetry-plugin-export
+  #         poetry export --with test --all-extras --format requirements.txt --output requirements-test.txt
+  #         python -m pip install -r requirements-test.txt
+  #         pip install "$(ls dist/*.whl)"
+  #
+  #     - name: Run tests
+  #       run: pytest --ignore=tests/performance_tests
 
   build-linux:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04]
-        python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest]
+        # python-version: ["3.11", "3.12"]
+        python-version: ["3.12"]
     defaults:
       run:
         shell: bash
@@ -505,333 +506,333 @@ jobs:
           name: ${{ env.ASSET_NAME }}
           path: ${{ env.ASSET_PATH }}
 
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest]
-        python-version: ["3.11", "3.12"]
-    defaults:
-      run:
-        shell: bash
-    name: build - python ${{ matrix.python-version }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    # Pause macOS jobs on develop branch for now (they take 1-1.5 hrs again)
-    if: >
-      !( (github.event_name == 'push' && github.ref_name == 'develop')
-      || (github.event_name == 'pull_request' && github.base_ref == 'develop') )
-    needs: [pre-commit]
-    env:
-      BUILD_MODE: release
-      RUST_BACKTRACE: 1
-      # > --------------------------------------------------
-      # > sccache
-      # https://github.com/Mozilla-Actions/sccache-action
-      SCCACHE_IDLE_TIMEOUT: 0
-      SCCACHE_DIRECT: "true"
-      SCCACHE_CACHE_MULTIARCH: 1
-      SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
-      RUSTC_WRAPPER: "sccache"
-      CC: "sccache clang"
-      CXX: "sccache clang++"
-      # Incrementally compiled crates cannot be cached by sccache
-      # https://github.com/mozilla/sccache#rust
-      CARGO_INCREMENTAL: 0
-      # > --------------------------------------------------
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Rust toolchain
-        run: |
-          rustup toolchain add --profile minimal stable --component clippy,rustfmt
-
-      - name: Set up Python environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Get Python version
-        run: |
-          version=$(bash scripts/python-version.sh)
-          echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Get Poetry version from poetry-version
-        run: |
-          version=$(cat poetry-version)
-          echo "POETRY_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: ${{ env.POETRY_VERSION }}
-
-      - name: Install build and dev dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          poetry install --only dev --no-root
-
-      - name: Cached sccache
-        id: cached-sccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
-          restore-keys: |
-            sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
-            sccache-${{ runner.os }}-${{ github.workflow }}-
-            sccache-${{ runner.os }}-
-
-      - name: Run sccache
-        uses: mozilla-actions/sccache-action@v0.0.7
-
-      - name: Cached cargo
-        id: cached-cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
-      - name: Cache Python site-packages
-        id: cached-site-packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/lib/python${{ matrix.python-version }}/site-packages
-          key: ${{ runner.os }}-${{ matrix.python-version }}-site-packages
-          restore-keys: |
-            ${{ runner.os }}-site-packages-
-
-      - name: Set poetry cache-dir
-        run: echo "POETRY_CACHE_DIR=$(poetry config cache-dir)" >> $GITHUB_ENV
-
-      - name: Cached poetry
-        id: cached-poetry
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.POETRY_CACHE_DIR }}
-          key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-poetry-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Cached test data
-        id: cached-testdata-large
-        uses: actions/cache@v4
-        with:
-          path: tests/test_data/large
-          key: ${{ runner.os }}-large-files-${{ hashFiles('tests/test_data/large/checksums.json') }}
-          restore-keys: ${{ runner.os }}-large-files-
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
-        with:
-          tool: nextest
-
-      - name: Run nautilus_core tests
-        run: make cargo-test
-
-      - name: Update version in pyproject.toml
-        run: |
-          current_version=$(grep '^version = ' pyproject.toml | cut -d '"' -f2)
-          if [[ -z "$current_version" ]]; then
-            echo "Error: Failed to extract version from pyproject.toml" >&2
-            exit 1
-          fi
-
-          branch_name="${GITHUB_REF_NAME}"  # Get the branch name
-          echo "Branch name: ${branch_name}"
-          base_version=$(echo "$current_version" | sed -E 's/(\.dev[0-9]{8}\+[0-9]+|a[0-9]{8})$//')
-
-          suffix=""
-          if [[ "$branch_name" == "develop" ]]; then
-            # Develop branch: use dev versioning with build number
-            suffix=".dev$(date +%Y%m%d)+${{ github.run_number }}"
-          elif [[ "$branch_name" == "nightly" ]]; then
-            # Nightly branch: use alpha versioning
-            suffix="a$(date +%Y%m%d)"
-          else
-            echo "Not modifying version"
-          fi
-
-          if [[ -n "$suffix" && "$current_version" != *"$suffix"* ]]; then
-            new_version="${base_version}${suffix}"
-            if sed -i.bak "s/^version = \".*\"/version = \"${new_version}\"/" pyproject.toml; then
-              echo "Version updated to ${new_version}"
-              rm -f pyproject.toml.bak
-            else
-              echo "Error: Failed to update version in pyproject.toml" >&2
-              exit 1
-            fi
-          fi
-
-      - name: Generate updated lock file
-        run: poetry lock --no-update
-
-      - name: Build Python wheel
-        run: |
-          poetry build --format wheel
-          ls -lh dist/
-
-      - name: Install Python wheel
-        run: |
-          python -m pip install --upgrade poetry-plugin-export
-          poetry export --with test --all-extras --format requirements.txt --output requirements-test.txt
-          python -m pip install -r requirements-test.txt
-          pip install "$(ls dist/*.whl)"
-
-      - name: Run tests
-        run: pytest --ignore=tests/performance_tests
-
-      - name: Set release output
-        if: github.event_name == 'push'
-        id: vars
-        run: |
-          echo "ASSET_PATH=$(find ./dist -mindepth 1 -print -quit)" >> $GITHUB_ENV
-          cd dist
-          echo "ASSET_NAME=$(printf '%s\0' * | awk 'BEGIN{RS="\0"} {print;  exit}')" >> $GITHUB_ENV
-
-      - name: Upload wheel artifact
-        if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.ASSET_NAME }}
-          path: ${{ env.ASSET_PATH }}
-
-  build-windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        python-version: ["3.11", "3.12"]
-    defaults:
-      run:
-        shell: bash
-    name: build - python ${{ matrix.python-version }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    needs: [pre-commit]
-    env:
-      BUILD_MODE: debug # Not building wheels, so debug is fine
-      HIGH_PRECISION: false
-      PARALLEL_BUILD: false
-      RUST_BACKTRACE: 1
-      # > --------------------------------------------------
-      # > sccache
-      # https://github.com/Mozilla-Actions/sccache-action
-      SCCACHE_DIR: "C:\\.cache\\sccache"
-      SCCACHE_IDLE_TIMEOUT: 0
-      SCCACHE_DIRECT: "true"
-      SCCACHE_CACHE_MULTIARCH: 1
-      RUSTC_WRAPPER: sccache
-      CMAKE_C_COMPILER_LAUNCHER: sccache
-      CMAKE_CXX_COMPILER_LAUNCHER: sccache
-      # Incrementally compiled crates cannot be cached by sccache
-      # https://github.com/mozilla/sccache#rust
-      CARGO_INCREMENTAL: 0
-      # > --------------------------------------------------
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Rust toolchain
-        run: |
-          rustup toolchain add --profile minimal stable --component clippy,rustfmt
-
-      - name: Set up Python environment
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Get Python version
-        run: |
-          version=$(bash scripts/python-version.sh)
-          echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Get Poetry version from poetry-version
-        run: |
-          version=$(cat poetry-version)
-          echo "POETRY_VERSION=$version" >> $GITHUB_ENV
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: ${{ env.POETRY_VERSION }}
-
-      - name: Install build and dev dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          poetry install --only dev --no-root
-
-      - name: Cached sccache
-        id: cached-sccache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.SCCACHE_DIR }}
-          key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
-          restore-keys: |
-            sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
-            sccache-${{ runner.os }}-${{ github.workflow }}-
-            sccache-${{ runner.os }}-
-
-      - name: Run sccache
-        uses: mozilla-actions/sccache-action@v0.0.7
-
-      - name: Cached cargo
-        id: cached-cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-
-      - name: Cache Python site-packages
-        id: cached-site-packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/lib/python${{ matrix.python-version }}/site-packages
-          key: ${{ runner.os }}-${{ matrix.python-version }}-site-packages
-          restore-keys: |
-            ${{ runner.os }}-site-packages-
-
-      - name: Set poetry cache-dir
-        run: echo "POETRY_CACHE_DIR=$(poetry config cache-dir)" >> $GITHUB_ENV
-
-      - name: Cached poetry
-        id: cached-poetry
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.POETRY_CACHE_DIR }}
-          key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-poetry-${{ hashFiles('**/poetry.lock') }}
-
-      - name: Cached test data
-        id: cached-testdata-large
-        uses: actions/cache@v4
-        with:
-          path: tests/test_data/large
-          key: ${{ runner.os }}-large-files-${{ hashFiles('tests/test_data/large/checksums.json') }}
-          restore-keys: ${{ runner.os }}-large-files-
-
-      # Run tests without parallel build (avoids linker errors)
-      - name: Run tests
-        run: |
-          poetry install --with test --all-extras
-          poetry run pytest --ignore=tests/performance_tests
+  # build-macos:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [macos-latest]
+  #       python-version: ["3.11", "3.12"]
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   name: build - python ${{ matrix.python-version }} (${{ matrix.os }})
+  #   runs-on: ${{ matrix.os }}
+  #   # Pause macOS jobs on develop branch for now (they take 1-1.5 hrs again)
+  #   if: >
+  #     !( (github.event_name == 'push' && github.ref_name == 'develop')
+  #     || (github.event_name == 'pull_request' && github.base_ref == 'develop') )
+  #   needs: [pre-commit]
+  #   env:
+  #     BUILD_MODE: release
+  #     RUST_BACKTRACE: 1
+  #     # > --------------------------------------------------
+  #     # > sccache
+  #     # https://github.com/Mozilla-Actions/sccache-action
+  #     SCCACHE_IDLE_TIMEOUT: 0
+  #     SCCACHE_DIRECT: "true"
+  #     SCCACHE_CACHE_MULTIARCH: 1
+  #     SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
+  #     RUSTC_WRAPPER: "sccache"
+  #     CC: "sccache clang"
+  #     CXX: "sccache clang++"
+  #     # Incrementally compiled crates cannot be cached by sccache
+  #     # https://github.com/mozilla/sccache#rust
+  #     CARGO_INCREMENTAL: 0
+  #     # > --------------------------------------------------
+  #
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Rust toolchain
+  #       run: |
+  #         rustup toolchain add --profile minimal stable --component clippy,rustfmt
+  #
+  #     - name: Set up Python environment
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #
+  #     - name: Get Python version
+  #       run: |
+  #         version=$(bash scripts/python-version.sh)
+  #         echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Get Poetry version from poetry-version
+  #       run: |
+  #         version=$(cat poetry-version)
+  #         echo "POETRY_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Install Poetry
+  #       uses: snok/install-poetry@v1
+  #       with:
+  #         version: ${{ env.POETRY_VERSION }}
+  #
+  #     - name: Install build and dev dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip setuptools wheel
+  #         poetry install --only dev --no-root
+  #
+  #     - name: Cached sccache
+  #       id: cached-sccache
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ env.SCCACHE_DIR }}
+  #         key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
+  #         restore-keys: |
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-
+  #           sccache-${{ runner.os }}-
+  #
+  #     - name: Run sccache
+  #       uses: mozilla-actions/sccache-action@v0.0.7
+  #
+  #     - name: Cached cargo
+  #       id: cached-cargo
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target/
+  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: ${{ runner.os }}-cargo-
+  #
+  #     - name: Cache Python site-packages
+  #       id: cached-site-packages
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.local/lib/python${{ matrix.python-version }}/site-packages
+  #         key: ${{ runner.os }}-${{ matrix.python-version }}-site-packages
+  #         restore-keys: |
+  #           ${{ runner.os }}-site-packages-
+  #
+  #     - name: Set poetry cache-dir
+  #       run: echo "POETRY_CACHE_DIR=$(poetry config cache-dir)" >> $GITHUB_ENV
+  #
+  #     - name: Cached poetry
+  #       id: cached-poetry
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ env.POETRY_CACHE_DIR }}
+  #         key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-poetry-${{ hashFiles('**/poetry.lock') }}
+  #
+  #     - name: Cached test data
+  #       id: cached-testdata-large
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: tests/test_data/large
+  #         key: ${{ runner.os }}-large-files-${{ hashFiles('tests/test_data/large/checksums.json') }}
+  #         restore-keys: ${{ runner.os }}-large-files-
+  #
+  #     - name: Install cargo-nextest
+  #       uses: taiki-e/install-action@v2
+  #       with:
+  #         tool: nextest
+  #
+  #     - name: Run nautilus_core tests
+  #       run: make cargo-test
+  #
+  #     - name: Update version in pyproject.toml
+  #       run: |
+  #         current_version=$(grep '^version = ' pyproject.toml | cut -d '"' -f2)
+  #         if [[ -z "$current_version" ]]; then
+  #           echo "Error: Failed to extract version from pyproject.toml" >&2
+  #           exit 1
+  #         fi
+  #
+  #         branch_name="${GITHUB_REF_NAME}"  # Get the branch name
+  #         echo "Branch name: ${branch_name}"
+  #         base_version=$(echo "$current_version" | sed -E 's/(\.dev[0-9]{8}\+[0-9]+|a[0-9]{8})$//')
+  #
+  #         suffix=""
+  #         if [[ "$branch_name" == "develop" ]]; then
+  #           # Develop branch: use dev versioning with build number
+  #           suffix=".dev$(date +%Y%m%d)+${{ github.run_number }}"
+  #         elif [[ "$branch_name" == "nightly" ]]; then
+  #           # Nightly branch: use alpha versioning
+  #           suffix="a$(date +%Y%m%d)"
+  #         else
+  #           echo "Not modifying version"
+  #         fi
+  #
+  #         if [[ -n "$suffix" && "$current_version" != *"$suffix"* ]]; then
+  #           new_version="${base_version}${suffix}"
+  #           if sed -i.bak "s/^version = \".*\"/version = \"${new_version}\"/" pyproject.toml; then
+  #             echo "Version updated to ${new_version}"
+  #             rm -f pyproject.toml.bak
+  #           else
+  #             echo "Error: Failed to update version in pyproject.toml" >&2
+  #             exit 1
+  #           fi
+  #         fi
+  #
+  #     - name: Generate updated lock file
+  #       run: poetry lock --no-update
+  #
+  #     - name: Build Python wheel
+  #       run: |
+  #         poetry build --format wheel
+  #         ls -lh dist/
+  #
+  #     - name: Install Python wheel
+  #       run: |
+  #         python -m pip install --upgrade poetry-plugin-export
+  #         poetry export --with test --all-extras --format requirements.txt --output requirements-test.txt
+  #         python -m pip install -r requirements-test.txt
+  #         pip install "$(ls dist/*.whl)"
+  #
+  #     - name: Run tests
+  #       run: pytest --ignore=tests/performance_tests
+  #
+  #     - name: Set release output
+  #       if: github.event_name == 'push'
+  #       id: vars
+  #       run: |
+  #         echo "ASSET_PATH=$(find ./dist -mindepth 1 -print -quit)" >> $GITHUB_ENV
+  #         cd dist
+  #         echo "ASSET_NAME=$(printf '%s\0' * | awk 'BEGIN{RS="\0"} {print;  exit}')" >> $GITHUB_ENV
+  #
+  #     - name: Upload wheel artifact
+  #       if: github.event_name == 'push'
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: ${{ env.ASSET_NAME }}
+  #         path: ${{ env.ASSET_PATH }}
+  #
+  # build-windows:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [windows-latest]
+  #       python-version: ["3.11", "3.12"]
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   name: build - python ${{ matrix.python-version }} (${{ matrix.os }})
+  #   runs-on: ${{ matrix.os }}
+  #   needs: [pre-commit]
+  #   env:
+  #     BUILD_MODE: debug # Not building wheels, so debug is fine
+  #     HIGH_PRECISION: false
+  #     PARALLEL_BUILD: false
+  #     RUST_BACKTRACE: 1
+  #     # > --------------------------------------------------
+  #     # > sccache
+  #     # https://github.com/Mozilla-Actions/sccache-action
+  #     SCCACHE_DIR: "C:\\.cache\\sccache"
+  #     SCCACHE_IDLE_TIMEOUT: 0
+  #     SCCACHE_DIRECT: "true"
+  #     SCCACHE_CACHE_MULTIARCH: 1
+  #     RUSTC_WRAPPER: sccache
+  #     CMAKE_C_COMPILER_LAUNCHER: sccache
+  #     CMAKE_CXX_COMPILER_LAUNCHER: sccache
+  #     # Incrementally compiled crates cannot be cached by sccache
+  #     # https://github.com/mozilla/sccache#rust
+  #     CARGO_INCREMENTAL: 0
+  #     # > --------------------------------------------------
+  #
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Set up Rust toolchain
+  #       run: |
+  #         rustup toolchain add --profile minimal stable --component clippy,rustfmt
+  #
+  #     - name: Set up Python environment
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #
+  #     - name: Get Python version
+  #       run: |
+  #         version=$(bash scripts/python-version.sh)
+  #         echo "PYTHON_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Get Poetry version from poetry-version
+  #       run: |
+  #         version=$(cat poetry-version)
+  #         echo "POETRY_VERSION=$version" >> $GITHUB_ENV
+  #
+  #     - name: Install Poetry
+  #       uses: snok/install-poetry@v1
+  #       with:
+  #         version: ${{ env.POETRY_VERSION }}
+  #
+  #     - name: Install build and dev dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip setuptools wheel
+  #         poetry install --only dev --no-root
+  #
+  #     - name: Cached sccache
+  #       id: cached-sccache
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ env.SCCACHE_DIR }}
+  #         key: sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock', '**/poetry.lock') }}
+  #         restore-keys: |
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-
+  #           sccache-${{ runner.os }}-${{ github.workflow }}-
+  #           sccache-${{ runner.os }}-
+  #
+  #     - name: Run sccache
+  #       uses: mozilla-actions/sccache-action@v0.0.7
+  #
+  #     - name: Cached cargo
+  #       id: cached-cargo
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           ~/.cargo/bin/
+  #           ~/.cargo/registry/index/
+  #           ~/.cargo/registry/cache/
+  #           ~/.cargo/git/db/
+  #           target/
+  #         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+  #         restore-keys: ${{ runner.os }}-cargo-
+  #
+  #     - name: Cache Python site-packages
+  #       id: cached-site-packages
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.local/lib/python${{ matrix.python-version }}/site-packages
+  #         key: ${{ runner.os }}-${{ matrix.python-version }}-site-packages
+  #         restore-keys: |
+  #           ${{ runner.os }}-site-packages-
+  #
+  #     - name: Set poetry cache-dir
+  #       run: echo "POETRY_CACHE_DIR=$(poetry config cache-dir)" >> $GITHUB_ENV
+  #
+  #     - name: Cached poetry
+  #       id: cached-poetry
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ${{ env.POETRY_CACHE_DIR }}
+  #         key: ${{ runner.os }}-${{ env.PYTHON_VERSION }}-poetry-${{ hashFiles('**/poetry.lock') }}
+  #
+  #     - name: Cached test data
+  #       id: cached-testdata-large
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: tests/test_data/large
+  #         key: ${{ runner.os }}-large-files-${{ hashFiles('tests/test_data/large/checksums.json') }}
+  #         restore-keys: ${{ runner.os }}-large-files-
+  #
+  #     # Run tests without parallel build (avoids linker errors)
+  #     - name: Run tests
+  #       run: |
+  #         poetry install --with test --all-extras
+  #         poetry run pytest --ignore=tests/performance_tests
 
   publish-wheels:
     name: publish-packages
     runs-on: ubuntu-latest
     # needs: [build-linux, build-macos]
     needs: [build-linux]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/nightly' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/nightly' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/test-build')
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
