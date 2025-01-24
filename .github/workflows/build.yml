@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [master, nightly, develop]
+    branches: [master, nightly, develop, test-build]
   pull_request:
     branches: [develop]
 
@@ -829,7 +829,8 @@ jobs:
   publish-wheels:
     name: publish-packages
     runs-on: ubuntu-latest
-    needs: [build-linux, build-macos]
+    # needs: [build-linux, build-macos]
+    needs: [build-linux]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/nightly' || github.ref == 'refs/heads/master')
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -853,14 +854,14 @@ jobs:
           set -euo pipefail
           echo "Configuring AWS CLI for Cloudflare R2..."
 
+          # Install specific AWS CLI version known to work with R2
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.22.34.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+
           mkdir -p ~/.aws
-          echo "[default]" > ~/.aws/credentials
-          echo "aws_access_key_id=${{ env.AWS_ACCESS_KEY_ID }}" >> ~/.aws/credentials
-          echo "aws_secret_access_key=${{ env.AWS_SECRET_ACCESS_KEY }}" >> ~/.aws/credentials
-          echo "[default]" > ~/.aws/config
-          echo "region=${{ env.CLOUDFLARE_R2_REGION }}" >> ~/.aws/config
-          echo "output=json" >> ~/.aws/config
-          echo "AWS CLI configuration completed"
+          envsubst < .github/aws/credentials.ini > ~/.aws/credentials
+          envsubst < .github/aws/config.ini > ~/.aws/config
 
       - name: Upload new wheels to Cloudflare R2
         run: |
