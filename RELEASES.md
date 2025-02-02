@@ -20,6 +20,7 @@ This release will be the final version that uses Poetry for package and dependen
 - Added `default_min_notional` config option for `BetfairInstrumentProviderConfig`
 - Added `stream_conflate_ms` config option for `BetfairDataClientConfig`
 - Added `recv_window_ms` config option for `BybitDataClientConfig` and `BybitExecClientConfig`
+- Added `open_check_open_only` config option for `LiveExecEngineConfig`
 
 ### Breaking Changes
 - Renamed `OptionsContract` instrument to `OptionContract` for more technically correct terminology (singular)
@@ -44,8 +45,10 @@ This release will be the final version that uses Poetry for package and dependen
 - Improved `TradingNode` shutdown when running with `asyncio.run()` (more orderly handling of event loop)
 - Improved `NautilusKernel` pending tasks cancellation on shutdown
 - Improved `TardisHttpClient` requests and error handling
+- Improved log file writer to strip ANSI escape codes and unprintable chars
 - Refined `Currency` `name` to accept non-ASCII characters (common for foreign currencies)
 - Refactored CI with composite actions (#2242), thanks @sunlei
+- Refactored Option Greeks feature (#2266), thanks @faysou
 - Changed to use `mold` as the linker in CI (#2254), thanks @sunlei
 - Ported market order processing for `OrderMatchingEngine` in Rust (#2202), thanks @filipmacek
 - Ported limit order processing for `OrderMatchingEngine` in Rust (#2212), thanks @filipmacek
