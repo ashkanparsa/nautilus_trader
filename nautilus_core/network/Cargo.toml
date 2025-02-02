@@ -26,7 +26,7 @@ tokio-tungstenite = { workspace = true }
 dashmap = "6.1.0"
 http = "1.2.0"
 nonzero_ext = "0.3.0"
-rustls = { version = "0.23.20", features = ["ring"] }
+rustls = { version = "0.23.21", features = ["ring"] }
 tokio-rustls = "0.26.1"
 
 [dev-dependencies]
@@ -42,6 +42,5 @@ extension-module = [
   "pyo3/extension-module",
   "nautilus-core/extension-module",
 ]
-gil-refs = []
 python = ["pyo3", "pyo3-async-runtimes"]
 std = []

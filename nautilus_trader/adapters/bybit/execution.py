@@ -261,7 +261,7 @@ class BybitExecutionClient(LiveExecutionClient):
         self._instrument_ids: dict[str, InstrumentId] = {}
         self._pending_trailing_stops: dict[ClientOrderId, Order] = {}
 
-        self._retry_manager_pool = RetryManagerPool(
+        self._retry_manager_pool = RetryManagerPool[None](
             pool_size=100,
             max_retries=config.max_retries or 0,
             retry_delay_secs=config.retry_delay or 0.0,
@@ -390,10 +390,10 @@ class BybitExecutionClient(LiveExecutionClient):
             if len(bybit_orders) == 0:
                 self._log.error(f"Received no order for {venue_order_id}")
                 return None
-            targetOrder = bybit_orders[0]
+            target_order = bybit_orders[0]
             if len(bybit_orders) > 1:
                 self._log.warning(f"Received more than one order for {venue_order_id}")
-                targetOrder = bybit_orders[0]
+                target_order = bybit_orders[0]
 
             order_link_id = bybit_orders[0].orderLinkId
             client_order_id = ClientOrderId(order_link_id) if order_link_id else None
@@ -401,7 +401,7 @@ class BybitExecutionClient(LiveExecutionClient):
             if client_order_id is None:
                 client_order_id = self._cache.client_order_id(venue_order_id)
 
-            order_report = targetOrder.parse_to_order_status_report(
+            order_report = target_order.parse_to_order_status_report(
                 client_order_id=client_order_id,
                 account_id=self.account_id,
                 instrument_id=instrument_id,
